@@ -799,7 +799,15 @@ class TargetData(object):
         """
 
         try:
-            cbvs_path = self.source_info.eleanorpath + '/metadata/s{0:04d}/cbv_components_s{0:04d}_{1:04d}_{2:04d}.txt'.format(
+            cbvs_root = getattr(self.source_info, 'eleanorpath', None)
+            if cbvs_root is None:
+                raise AttributeError(
+                    "source_info does not define 'eleanorpath'; cannot locate CBV metadata. "
+                    "Current Source objects expose 'metadata_path', so this likely means the "
+                    "CBV path construction is using stale state."
+                )
+
+            cbvs_path = cbvs_root + '/metadata/s{0:04d}/cbv_components_s{0:04d}_{1:04d}_{2:04d}.txt'.format(
                 self.source_info.sector,
                 self.source_info.camera,
                 self.source_info.chip
@@ -826,14 +834,32 @@ class TargetData(object):
                         cbvs = np.append(cbvs[:6448],cbvs[7910:])
             self.cbvs = np.reshape(cbvs, (len(self.time), 16))
 
+            if (not np.isfinite(self.cbvs).any()) or np.allclose(np.nan_to_num(self.cbvs), 0.0):
+                raise ValueError(
+                    "CBV matrix loaded successfully but contains only zero or non-finite values. "
+                    "This would decorrelate against an empty basis and can make corrected flux "
+                    "products diverge from the documented behavior. path={0}".format(cbvs_path)
+                )
+
         except Exception as e:
-            warnings.warn(
-                "Unexpected error in loading CBV"
-                f" for sector {self.source_info.sector}, camera {self.source_info.camera}, CCD {self.source_info.chip}."
-                " Use zeros for CBV."
-                f" {type(e).__name__}: {e}"
-            )
-            self.cbvs = np.zeros((len(self.time), 16))
+            metadata_path = getattr(self.source_info, 'metadata_path', None)
+            eleanorpath = getattr(self.source_info, 'eleanorpath', None)
+            raise RuntimeError(
+                "Unable to load cotrending basis vectors for sector={0}, camera={1}, ccd={2}. "
+                "Previous versions silently substituted an all-zero CBV matrix here, which can "
+                "hide de-correlation failures and make notebook outputs difficult to reproduce. "
+                "cbvs_path={3}; source_info.metadata_path={4}; source_info.eleanorpath={5}; "
+                "original_error={6}: {7}".format(
+                    self.source_info.sector,
+                    self.source_info.camera,
+                    self.source_info.chip,
+                    cbvs_path if 'cbvs_path' in locals() else None,
+                    metadata_path,
+                    eleanorpath,
+                    type(e).__name__,
+                    e
+                )
+            ) from e
         return
 
 
