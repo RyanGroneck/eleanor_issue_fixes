@@ -1,15 +1,3 @@
-"""Extract, correct, save, and reload eleanor target-pixel light curves.
-
-`TargetData` is the core photometry object: it turns a `Source` and its postcard
-or TessCut image stack into a target pixel file, estimates backgrounds, creates
-candidate apertures, and chooses light curves. It computes raw, corrected, PCA,
-and optional PSF-based fluxes while tracking centroids, quality flags, CBVs,
-apertures, FITS headers, and uncertainties. The class also knows how to save and
-load eleanor FITS products, stitch multiple sectors, and convert results to
-Lightkurve objects. Supporting functions at the bottom normalize regressors,
-rotate centroids, estimate flattened scatter, and create CBV metadata from FFIs.
-AI generated summary.
-"""
 import pickle
 import os.path
 import warnings

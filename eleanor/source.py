@@ -1,14 +1,3 @@
-"""Resolve user-supplied target identifiers into TESS observing metadata.
-
-This module is the package's target discovery layer: it accepts TIC IDs, Gaia
-IDs, coordinates, names, or saved file names and turns them into sector,
-camera, CCD, chip-position, and postcard-position metadata. `Source` also
-handles finding local or remote postcard products, falling back to TessCut
-cutouts, loading pointing models, and checking whether the target lands on an
-observable TESS detector region. The `multi_sectors` helper builds one `Source`
-per requested sector, including an `'all'` mode that asks `tess_stars2px` which
-sectors observed the target. AI generated summary.
-"""
 import re
 import os
 import sys

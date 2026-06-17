@@ -1,11 +1,3 @@
-"""Find matching light curves from other TESS data products and pipelines.
-
-The `Crossmatch` class attaches to an `eleanor.TargetData` object and uses its
-sector, camera, CCD, and TIC metadata to search external products. It can query
-and optionally download two-minute cadence TESS target pixel files through
-Lightkurve. It also retrieves TASOC products from MAST and parses Oelkers &
-Stassun light-curve tables when those products exist for the target. AI generated summary.
-"""
 import os
 import socket
 import urllib

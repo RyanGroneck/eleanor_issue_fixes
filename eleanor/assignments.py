@@ -1,9 +1,3 @@
-"""Provide sector-specific metadata choices used by update workflows.
-
-This module maps TESS sectors to observing years and selects calibration
-targets whose cutouts can seed cadence, quality, and CBV metadata generation.
-AI generated summary.
-"""
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from tess_stars2px import tess_stars2px_function_entry as tess_stars2px

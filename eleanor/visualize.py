@@ -1,14 +1,3 @@
-"""Create diagnostic figures, movies, and overlays for eleanor data products.
-
-The `Visualize` class wraps either a target pixel file or a postcard-like object
-and exposes plotting tools for aperture contours, pixel-by-pixel light curves,
-movie-style cadence inspection, and Gaia overlays. It relies on matplotlib,
-Lightkurve, WCS information, Lomb-Scargle periodograms, and optional MAST data
-queries to connect image pixels with time-series behavior and nearby catalog
-sources. These methods are presentation-oriented and operate on already-created
-`TargetData` or postcard objects rather than performing the extraction itself.
-AI generated summary.
-"""
 import sys
 import numpy as np
 from pylab import *

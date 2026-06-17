@@ -1,13 +1,3 @@
-"""Represent eleanor postcard files and TessCut cutouts as image stacks.
-
-`Postcard` wraps downloaded eleanor postcard FITS products, exposing their flux,
-uncertainty, timing, WCS, quality, background, and cadence metadata through
-properties. `Postcard_tesscut` provides the same interface for MAST TessCut
-cutouts, filling in sector quality and cadence information from local eleanor
-metadata when needed. The module also provides helper functions for readable
-source identifiers, reconstructing quality flags, and deriving FFI cadence
-indices from FFI filenames. AI generated summary.
-"""
 import os, sys
 from datetime import datetime
 

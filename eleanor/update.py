@@ -1,13 +1,3 @@
-"""Download and prepare local eleanor metadata for newly available sectors.
-
-This module maintains sector availability and builds the hidden `~/.eleanor`
-metadata files needed by `Source`, `Postcard_tesscut`, and `TargetData`.
-`Update` downloads a representative TessCut, pulls a short-cadence calibration
-target, derives FFI cadence indices and quality flags, and creates convolved CBV
-component files for each camera and CCD. The module also includes date and
-directory helpers plus convenience functions for updating the recorded maximum
-sector or iterating through all available sectors. AI generated summary.
-"""
 import os
 import sys
 import math

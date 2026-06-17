@@ -1,10 +1,3 @@
-"""Define simple TensorFlow-backed PSF models for photometric fitting.
-
-This module supplies a grid-aware base `Model` plus Gaussian and Moffat
-profiles used by `TargetData.psf_lightcurve`. Each model evaluates a normalized
-point-spread function over target-pixel coordinates so fitted flux can be
-distributed across a TPF. AI generated summary.
-"""
 import math
 import numpy as np
 from astropy.io import fits as pyfits

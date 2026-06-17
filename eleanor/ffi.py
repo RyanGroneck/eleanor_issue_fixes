@@ -1,13 +1,3 @@
-"""Handle full-frame image access, pointing models, and FFI quality helpers.
-
-This module contains utilities for locating, loading, and applying eleanor
-pointing models, plus centroid and quality-flag routines used during light
-curve extraction. The `ffi` class supports downloading all FFIs for a sector,
-camera, and chip, sorting them, and building per-cadence pointing models from
-predicted and inferred source positions. These routines sit below `Source`,
-`Postcard`, and `TargetData`, providing the geometric corrections and metadata
-needed to place stars accurately on postcard and target-pixel images. AI generated summary.
-"""
 import os, tqdm
 import numpy as np
 import matplotlib.pyplot as plt
