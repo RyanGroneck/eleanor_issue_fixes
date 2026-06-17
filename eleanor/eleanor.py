@@ -1,3 +1,9 @@
+"""Provide the package's command-line entry point for building target data.
+
+When executed as a script, this module accepts a target identifier from the
+command line, constructs a `Source`, builds `TargetData`, and saves the result.
+AI generated summary.
+"""
 import sys, os, ast
 from .source import Source
 from .targetdata import TargetData

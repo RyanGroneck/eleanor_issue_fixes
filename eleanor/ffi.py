@@ -1,3 +1,13 @@
+"""Handle full-frame image access, pointing models, and FFI quality helpers.
+
+This module contains utilities for locating, loading, and applying eleanor
+pointing models, plus centroid and quality-flag routines used during light
+curve extraction. The `ffi` class supports downloading all FFIs for a sector,
+camera, and chip, sorting them, and building per-cadence pointing models from
+predicted and inferred source positions. These routines sit below `Source`,
+`Postcard`, and `TargetData`, providing the geometric corrections and metadata
+needed to place stars accurately on postcard and target-pixel images. AI generated summary.
+"""
 import os, tqdm
 import numpy as np
 import matplotlib.pyplot as plt
@@ -408,7 +418,7 @@ class ffi:
         return xhat
 
 
-    def pointing_model_per_cadence(self, out_dir=None, n_sources=350):
+    def pointing_model_per_cadence(self, out_dir=None, n_sources=350, eleanor_path=None):
         """Step through build_pointing_model for each cadence."""
 
         def find_isolated(x, y):
@@ -473,9 +483,10 @@ class ffi:
 
         pm_fn = 's{0:04d}-{1}-{2}_tess_v2_pm.txt'.format(self.sector, self.camera, self.chip)
 
-        eleanorpath = os.path.join(os.path.expanduser('~'), '.eleanor')
+        if eleanor_path is None:
+            eleanor_path = os.path.join(os.path.expanduser('~'), '.eleanor')
 
-        qf = np.loadtxt(eleanorpath + '/metadata/s{0:04d}/quality_s{0:04d}.txt'.format(self.sector,
+        qf = np.loadtxt(eleanor_path + '/metadata/s{0:04d}/quality_s{0:04d}.txt'.format(self.sector,
                                                                                                                         self.sector))
 
         if out_dir is not None:

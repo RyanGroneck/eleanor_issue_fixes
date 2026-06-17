@@ -1,3 +1,5 @@
+# Catalog of postcard center pixel coordinates used to map TESS full-frame images into eleanor postcard tiles.
+# AI generated summary.
 x   y
 118 52
 118 106

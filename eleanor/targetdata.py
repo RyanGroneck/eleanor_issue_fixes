@@ -1,3 +1,15 @@
+"""Extract, correct, save, and reload eleanor target-pixel light curves.
+
+`TargetData` is the core photometry object: it turns a `Source` and its postcard
+or TessCut image stack into a target pixel file, estimates backgrounds, creates
+candidate apertures, and chooses light curves. It computes raw, corrected, PCA,
+and optional PSF-based fluxes while tracking centroids, quality flags, CBVs,
+apertures, FITS headers, and uncertainties. The class also knows how to save and
+load eleanor FITS products, stitch multiple sectors, and convert results to
+Lightkurve objects. Supporting functions at the bottom normalize regressors,
+rotate centroids, estimate flattened scatter, and create CBV metadata from FFIs.
+AI generated summary.
+"""
 import pickle
 import os.path
 import warnings
@@ -188,8 +200,8 @@ class TargetData(object):
                     self.post_obj = Postcard(source.postcard, source.postcard_bkg,
                                              source.postcard_path)
                 else:
-                    location_path = os.path.join(source.metadata_path, 'tesscut')
-                    self.post_obj = Postcard_tesscut(source.cutout, location=location_path, eleanorpath=source.metadata_path)
+                    location_path = os.path.join(source.eleanor_path, 'tesscut')
+                    self.post_obj = Postcard_tesscut(source.cutout, location=location_path, eleanor_path=source.eleanor_path)
 
                 ### print(f"DBGt __init__() - #.post_obj={self.post_obj.dimensions}, #.post_obj.quality={self.post_obj.quality.shape}")
                 self.ffiindex = self.post_obj.ffiindex
@@ -798,42 +810,55 @@ class TargetData(object):
         ----------
         """
 
-        try:
-            cbvs_path = self.source_info.eleanorpath + '/metadata/s{0:04d}/cbv_components_s{0:04d}_{1:04d}_{2:04d}.txt'.format(
+        eleanor_path = getattr(self.source_info, 'eleanor_path', None)
+        if eleanor_path is None:
+            raise AttributeError(
+                "Source object has no 'eleanor_path' attribute, so CBV "
+                "metadata cannot be located."
+            )
+
+        cbvs_path = os.path.join(
+            eleanor_path,
+            'metadata',
+            's{0:04d}'.format(self.source_info.sector),
+            'cbv_components_s{0:04d}_{1:04d}_{2:04d}.txt'.format(
                 self.source_info.sector,
                 self.source_info.camera,
                 self.source_info.chip
             )
-            matrix_file = np.loadtxt(cbvs_path)
-            ### print("DBGt", len(matrix_file), len(self.tpf))
-            if len(matrix_file) != len(self.tpf):
-                # Workaround for general problem of
-                # https://github.com/afeinstein20/eleanor/issues/267
-                warnings.warn(
-                    f"Num. of cadences mismatch between postcard TPF ({len(self.tpf)})"
-                    f" and the CBV ({len(matrix_file)})"
-                    f" for sector {self.source_info.sector}, camera {self.source_info.camera}, CCD {self.source_info.chip}."
-                    " Regenerate it."
-                )
-                # re-create, save and reload the CBV using the cadences in the poscard
-                calc_n_save_cbvs(self.post_obj.hdu, self.source_info.sector, run_hdu_camera_ccd_only=True)
-                matrix_file = np.loadtxt(cbvs_path)
-
-            cbvs = np.asarray(matrix_file)
-            if self.source_info.sector == 65:
-                if self.source_info.camera == 4:
-                    if self.source_info.chip == 4:
-                        cbvs = np.append(cbvs[:6448],cbvs[7910:])
-            self.cbvs = np.reshape(cbvs, (len(self.time), 16))
-
-        except Exception as e:
+        )
+        matrix_file = np.loadtxt(cbvs_path)
+        ### print("DBGt", len(matrix_file), len(self.tpf))
+        if len(matrix_file) != len(self.tpf):
+            # Workaround for general problem of
+            # https://github.com/afeinstein20/eleanor/issues/267
             warnings.warn(
-                "Unexpected error in loading CBV"
+                f"Num. of cadences mismatch between postcard TPF ({len(self.tpf)})"
+                f" and the CBV ({len(matrix_file)})"
                 f" for sector {self.source_info.sector}, camera {self.source_info.camera}, CCD {self.source_info.chip}."
-                " Use zeros for CBV."
-                f" {type(e).__name__}: {e}"
+                " Regenerate it."
             )
-            self.cbvs = np.zeros((len(self.time), 16))
+            # re-create, save and reload the CBV using the cadences in the poscard
+            calc_n_save_cbvs(
+                self.post_obj.hdu,
+                self.source_info.sector,
+                run_hdu_camera_ccd_only=True,
+                eleanor_path=eleanor_path
+            )
+            matrix_file = np.loadtxt(cbvs_path)
+
+        cbvs = np.asarray(matrix_file)
+        if self.source_info.sector == 65:
+            if self.source_info.camera == 4:
+                if self.source_info.chip == 4:
+                    cbvs = np.append(cbvs[:6448],cbvs[7910:])
+        self.cbvs = np.reshape(cbvs, (len(self.time), 16))
+
+        if (not np.isfinite(self.cbvs).any()) or np.allclose(np.nan_to_num(self.cbvs), 0.0):
+            raise ValueError(
+                "CBV matrix loaded successfully but contains only zero or "
+                f"non-finite values. path={cbvs_path!r}"
+            )
         return
 
 
@@ -1619,8 +1644,9 @@ class TargetData(object):
                     post_path = '/'.join(self.source_info.postcard_path.split('/')[0:-1])
                     self.post_obj = Postcard(filename=post_fn, location=post_path)
             else:
-                self.post_obj =Postcard_tesscut(self.source_info.cutout,
-                                                location=self.source_info.postcard_path)
+                self.post_obj = Postcard_tesscut(self.source_info.cutout,
+                                                 location=self.source_info.postcard_path,
+                                                 eleanor_path=self.source_info.eleanor_path)
 
         except TypeError:
             print("No postcard object will be created for this target.")
@@ -1788,14 +1814,17 @@ def get_flattened_sigma(y, maxiter=100, window_size=51, nsigma=4):
     return sig
 
 
-def calc_n_save_cbvs(ffi_hdu, sector, run_hdu_camera_ccd_only=False):
+def calc_n_save_cbvs(ffi_hdu, sector, run_hdu_camera_ccd_only=False, eleanor_path=None):
 
     # Note: essentially the same code as Update.get_cbvs(),
     # adapted
     # 1. to be used standalone,
     # 2. run for a specific camera/ccd only
 
-    from .update import listFD, eleanorpath
+    from .update import listFD
+
+    if eleanor_path is None:
+        eleanor_path = os.path.join(os.path.expanduser('~'), '.eleanor')
 
     if sector <= 6:
         year = 2018
@@ -1854,7 +1883,13 @@ def calc_n_save_cbvs(ffi_hdu, sector, run_hdu_camera_ccd_only=False):
         ccd      = cbv[1].header['CCD']
         cbv_time = cbv[1].data['Time']
 
-        new_fn = eleanorpath + '/metadata/s{0:04d}/cbv_components_s{0:04d}_{1:04d}_{2:04d}.txt'.format(sector, camera, ccd)
+        new_fn = os.path.join(
+            eleanor_path,
+            'metadata',
+            's{0:04d}'.format(sector),
+            'cbv_components_s{0:04d}_{1:04d}_{2:04d}.txt'.format(sector, camera, ccd)
+        )
+        os.makedirs(os.path.dirname(new_fn), exist_ok=True)
 
         convolved = np.zeros((len(time), 16))
         for i in range(len(time)):

@@ -1,3 +1,13 @@
+"""Represent eleanor postcard files and TessCut cutouts as image stacks.
+
+`Postcard` wraps downloaded eleanor postcard FITS products, exposing their flux,
+uncertainty, timing, WCS, quality, background, and cadence metadata through
+properties. `Postcard_tesscut` provides the same interface for MAST TessCut
+cutouts, filling in sector quality and cadence information from local eleanor
+metadata when needed. The module also provides helper functions for readable
+source identifiers, reconstructing quality flags, and deriving FFI cadence
+indices from FFI filenames. AI generated summary.
+"""
 import os, sys
 from datetime import datetime
 
@@ -215,12 +225,15 @@ class Postcard_tesscut(object):
         (`x`, `y`) coordinates corresponding to the location of
         the postcard's (0,0) pixel on the FFI.
     """
-    def __init__(self, cutout, location=None, eleanorpath=None):
+    def __init__(self, cutout, location=None, eleanor_path=None, eleanorpath=None):
 
-        if eleanorpath is None:
+        if eleanor_path is None:
+            eleanor_path = eleanorpath
+
+        if eleanor_path is None:
             self.eleanor_path = os.path.join(os.path.expanduser('~'), '.eleanor')
         else:
-            self.eleanor_path = eleanorpath
+            self.eleanor_path = eleanor_path
 
         if location is None:
             self.local_path = os.path.join(self.eleanor_path, 'tesscut')
@@ -350,7 +363,7 @@ class Postcard_tesscut(object):
                 f" for {source_id_str(self)}."
                 " Regenerate them."
             )
-            A = calc_quality(self.hdu, sector, eleanorpath=self.eleanor_path)
+            A = calc_quality(self.hdu, sector, eleanor_path=self.eleanor_path)
         return A
 
     @property
@@ -393,7 +406,7 @@ def source_id_str(post_obj):
     return f"sector {h.get('SECTOR')}, camera {h.get('CAMERA')}, CCD {h.get('CCD')}"
 
 
-def calc_quality(ffi_hdu, sector, eleanorpath=None):
+def calc_quality(ffi_hdu, sector, eleanor_path=None, eleanorpath=None):
     """ Uses the quality flags in a 2-minute target to create quality flags
         for the given postcard.
     """
@@ -403,9 +416,11 @@ def calc_quality(ffi_hdu, sector, eleanorpath=None):
 
     ffi_time = ffi_hdu[1].data['TIME'] # - ffi_hdu[1].data['TIMECORR']
 
-    if eleanorpath is None:
-        eleanorpath = os.path.join(os.path.expanduser('~'), '.eleanor')
-    shortCad_fn = eleanorpath + '/metadata/s{0:04d}/target_s{0:04d}.fits'.format(sector)
+    if eleanor_path is None:
+        eleanor_path = eleanorpath
+    if eleanor_path is None:
+        eleanor_path = os.path.join(os.path.expanduser('~'), '.eleanor')
+    shortCad_fn = eleanor_path + '/metadata/s{0:04d}/target_s{0:04d}.fits'.format(sector)
 
     # Binary string for values which apply to the FFIs
     if sector > 26:

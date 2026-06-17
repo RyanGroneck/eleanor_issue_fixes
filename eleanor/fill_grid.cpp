@@ -1,4 +1,12 @@
 /*
+Interpolates missing grid values from valid neighboring pixels.
+
+This pybind11 extension fills a two-dimensional numeric grid using horizontal
+and vertical passes over a boolean validity mask. It updates a count array so
+pixels with information from one or both directions are averaged consistently.
+AI generated summary.
+*/
+/*
 <%
 setup_pybind11(cfg)
 %>

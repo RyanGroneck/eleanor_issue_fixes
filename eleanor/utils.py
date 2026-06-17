@@ -1,3 +1,4 @@
+"""Define eleanor-specific warning and exception classes shared across modules. AI generated summary."""
 __all__ = ['EleanorWarning', 'SearchError', 'EdgeProblem']
 
 class EleanorWarning(Warning):

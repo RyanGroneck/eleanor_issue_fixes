@@ -1,3 +1,14 @@
+"""Resolve user-supplied target identifiers into TESS observing metadata.
+
+This module is the package's target discovery layer: it accepts TIC IDs, Gaia
+IDs, coordinates, names, or saved file names and turns them into sector,
+camera, CCD, chip-position, and postcard-position metadata. `Source` also
+handles finding local or remote postcard products, falling back to TessCut
+cutouts, loading pointing models, and checking whether the target lands on an
+observable TESS detector region. The `multi_sectors` helper builds one `Source`
+per requested sector, including an `'all'` mode that asks `tess_stars2px` which
+sectors observed the target. AI generated summary.
+"""
 import re
 import os
 import sys
@@ -28,7 +39,7 @@ __all__ = ['Source', 'multi_sectors']
 def multi_sectors(sectors, tic=None, gaia=None,
                   coords=None, name=None, tc=False, local=False,
                   post_dir=None, pm_dir=None,
-                  metadata_path=None, tesscut_size=31):
+                  eleanor_path=None, tesscut_size=31):
     """Obtain a list of Source objects for a single target, for each of
        multiple sectors for which the target was observed.
 
@@ -77,7 +88,7 @@ def multi_sectors(sectors, tic=None, gaia=None,
         for s in sectors:
             star = Source(tic=tic, gaia=gaia, coords=coords, sector=int(s), tc=tc,
                           local=local, post_dir=post_dir, pm_dir=pm_dir,
-                          metadata_path=metadata_path, tesscut_size=tesscut_size)
+                          eleanor_path=eleanor_path, tesscut_size=tesscut_size)
             if star.sector is not None:
                 objs.append(star)
         if len(objs) < len(sectors):
@@ -134,7 +145,7 @@ class Source(object):
     """
     def __init__(self, tic=None, gaia=None, coords=None, name=None, fn=None,
                  sector=None, fn_dir=None, tc=False, local=False, post_dir=None, pm_dir=None,
-                 metadata_path=None, tesscut_size=31, tm=None):
+                 eleanor_path=None, tesscut_size=31, tm=None):
         self.tic       = tic
         self.gaia      = gaia
         self.coords    = coords
@@ -169,21 +180,19 @@ class Source(object):
         else:
             self.fn_dir  = fn_dir
 
-        # self.eleanorpath = os.path.join(os.path.expanduser('~'), '.eleanor')
-
-        if metadata_path is None:
-            self.metadata_path = os.path.join(os.path.expanduser('~'), '.eleanor')
+        if eleanor_path is None:
+            self.eleanor_path = os.path.join(os.path.expanduser('~'), '.eleanor')
         else:
-            self.metadata_path = metadata_path
+            self.eleanor_path = eleanor_path
 
-        if not os.path.exists(self.metadata_path):
+        if not os.path.exists(self.eleanor_path):
             try:
-                os.mkdir(self.metadata_path)
+                os.makedirs(self.eleanor_path)
             except OSError:
-                self.metadata_path = os.path.dirname(__file__)
+                self.eleanor_path = os.path.dirname(__file__)
 
-        if not os.path.exists(self.metadata_path + '/metadata'):
-            os.mkdir(self.metadata_path + '/metadata')
+        if not os.path.exists(self.eleanor_path + '/metadata'):
+            os.makedirs(self.eleanor_path + '/metadata')
 
         if self.fn is not None:
             try:
@@ -262,8 +271,8 @@ class Source(object):
             self.locate_on_tess()
             self.tesscut_size = tesscut_size
 
-            if not os.path.isdir(self.metadata_path + '/metadata/s{:04d}'.format(self.sector)):
-                Update(sector=self.sector)
+            if not os.path.isdir(self.eleanor_path + '/metadata/s{:04d}'.format(self.sector)):
+                Update(sector=self.sector, eleanor_path=self.eleanor_path)
 
             if tc == False:
                 self.locate_postcard(local)
